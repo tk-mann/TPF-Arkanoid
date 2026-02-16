@@ -1,4 +1,5 @@
 #include "arkanoid.h"
+#include <stdio.h>
 
 int main(void){
 	GAME_STATE estado_juego;
@@ -9,6 +10,7 @@ int main(void){
 
 	estado_juego.state = menu();
 
+	printf("Estado del juego: %d\n", estado_juego.state);
 	while(estado_juego.state == JUGAR){
 		play(&estado_juego);
 		if(estado_juego.state == DERROTA){

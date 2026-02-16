@@ -33,7 +33,7 @@ static void get_button_state(bool * button_state, ALLEGRO_BITMAP **imagen, ALLEG
 static int iniciar_texto(ALLEGRO_BITMAP **imagen, ALLEGRO_BITMAP ** backsquare_1, ALLEGRO_BITMAP ** backsquare_2) {
 
 	//cargar imagen de fondo
-   *imagen = al_load_bitmap("assets/Invaders/fondo_inicio.png");
+   *imagen = al_load_bitmap("assets/nave/fondo_inicio.png");
 
    // verificar que se cargó correctamente
    if (!*imagen) {
@@ -125,7 +125,7 @@ int menu_pausa() {
    ALLEGRO_BITMAP * backsquare_2 = al_create_bitmap(100, 50);
    ALLEGRO_BITMAP * backsquare_3 = al_create_bitmap(100, 50);
    ALLEGRO_BITMAP *imagen;
-   imagen = al_load_bitmap("assets/Invaders/fondo_inicio.png");
+   imagen = al_load_bitmap("assets/nave/fondo_inicio.png");
 
    // Rellenar los bitmaps con color blanco
    al_set_target_bitmap(backsquare_1);
@@ -216,11 +216,17 @@ int menu_pausa() {
    return opcion;
 }
 
-void pantalla_final(GAME_STATE * estado_juego) {
+//YA TERMINE BÁSICAMENTE LA IMPRESIÓN EN PANBTALLA
+//AHORA DEBERÍA PONERME A VER EL TEMA DEL BACKEND
+//Y COMO SE MUEVE LA PELOTA E INTERACTUA CON EL ENTORNO
+//QUE PASA CUANDO TETECTA COLISION Y TODO ESO
+
+
+void end_phase(GAME_STATE * estado_juego) {
    ALLEGRO_BITMAP * backsquare_1 = al_create_bitmap(150, 50);
    ALLEGRO_BITMAP * backsquare_2 = al_create_bitmap(60, 50);
    ALLEGRO_BITMAP *imagen;
-   imagen = al_load_bitmap("assets/Invaders/fondo_inicio.png");
+   imagen = al_load_bitmap("assets/nave/fondo_inicio.png");
 
    // Rellenar los bitmaps con color blanco
    al_set_target_bitmap(backsquare_1);
