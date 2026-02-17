@@ -2,6 +2,7 @@
 #include "game.h"
 #include "game_struct.h"
 #include <allegro5/allegro_color.h>
+#include "backend.h"
 
 // Variables externas
 extern ALLEGRO_EVENT_QUEUE *event_queue;
@@ -41,12 +42,23 @@ typedef struct{
     BALL ball;
 } ALL_BALL;
 
-void actualizar_movimientos(ALL_PLAYER *player, ALL_BALL *ball) {
+void actualizar_bloques(BLOCK_ARRANGE_1 *arrangement) {
+    // Aquí puedes agregar lógica para actualizar la animación de los bloques, la pelota y el jugador
+    // Por ejemplo, podrías cambiar el bitmap del bloque según su estado o animar la pelota al moverse
+    for (int i = 0; i < 6*5; i++) {
+        if (arrangement->block[i].alive) {
+            al_draw_bitmap(arrangement->block_bitmaps[i], arrangement->block[i].x, arrangement->block[i].y, 0);
+        }
+    }
+}
+
+
+void actualizar_movimientos(ALL_PLAYER *player, ALL_BALL *ball, BLOCK_ARRANGE_1 *arrangement) {
     // Aquí puedes agregar lógica para actualizar la animación de los bloques, la pelota y el jugador
     // Por ejemplo, podrías cambiar el bitmap del bloque según su estado o animar la pelota al moverse
     al_draw_bitmap(ball->ball_bitmap, ball->ball.x, ball->ball.y, 0);
     al_draw_bitmap(player->player_bitmap, player->player.x, player->player.y, 0);
-    //ACTUALIZAR BVLOQUJES FUNCOION
+    actualizar_bloques(arrangement);
 }
 
 //YA TERMINE BÁSICAMENTE LA IMPRESIÓN EN PANBTALLA
@@ -91,21 +103,29 @@ static void registrar_teclas() {
 }
 
 void procesar_entradas(GAME_STATE *estado_juego, ALL_PLAYER * player, ALL_BALL * ball) {
-    printf("posicion actual: %d, LEFT=%d, RIGHT=%d\n", player->player.x, key_pressed[KEY_LEFT], key_pressed[KEY_RIGHT]);
+   // printf("posicion actual: %d, LEFT=%d, RIGHT=%d\n", player->player.x, key_pressed[KEY_LEFT], key_pressed[KEY_RIGHT]);
     if (key_pressed[KEY_LEFT]) {
           if ((player->player.x - NAVE_MOVE_RATE) >= 0) {
             player->player.x -= NAVE_MOVE_RATE;
+            if(ball->ball.start == false){
+                ball->ball.x -= NAVE_MOVE_RATE;
+            }
           }
         }
         //procesa movimiento hacia lado derecho
         else if (key_pressed[KEY_RIGHT]) {
           if ((player->player.x + NAVE_MOVE_RATE) <= (ALLEGRO_W - PLAYER_WIDTH)) 
             player->player.x += NAVE_MOVE_RATE;
+            if(ball->ball.start == false){
+                ball->ball.x += NAVE_MOVE_RATE;
+            }
         }
         //procesa disparo
-        if (key_pressed[KEY_SPACE] /*&& ball->ball.start == false*/) {
+        if (key_pressed[KEY_SPACE] && ball->ball.start == false) {
             ball->ball.start = true;
-            ball->ball.y -= BALL_MOVE_RATE; // Iniciar movimiento de la pelota
+            ball->ball.vx = -5;
+            ball->ball.vy = -1;
+            printf("¡Disparo!\n");
         }
         //procesa pausa
         if (key_pressed[KEY_ESCAPE]) {
@@ -209,7 +229,7 @@ int init_level_1(GAME_STATE *estado_juego, BLOCK_ARRANGE_1 *arrangement) {
     // Por ejemplo, podrías cargar un mapa específico para el nivel 1
   // Inicializar bloques
   const int rows = 6;
-  const int cols = 11;
+  const int cols = 5;
   const float start_x = 0.0f;
   const float start_y = 30.0f;
   const float padding = 0.0f;
@@ -260,6 +280,7 @@ void load_game(GAME_STATE *estado_juego, ALL_PLAYER *player, ALL_BALL *ball, BLO
     player->player_bitmap =  create_block_bitmap(COLOR_ORANGE, PLAYER_WIDTH, PLAYER_HEIGHT);
     al_draw_bitmap(player->player_bitmap, PLAYER_START_X, PLAYER_START_Y, 0);
     ball->ball_bitmap = create_ball_bitmap(8, al_map_rgb(255, 255, 255));
+    ball->ball.size = 16;
     al_draw_bitmap(ball->ball_bitmap, PLAYER_START_X + 50 - 8, PLAYER_START_Y - 16, 0);
     ball->ball.x = PLAYER_START_X + 50 - 8;
     ball->ball.y = PLAYER_START_Y - 16;
@@ -287,6 +308,7 @@ void play(GAME_STATE *estado_juego) {
     ALL_BALL ball;
     BLOCK_ARRANGE_1 arrangement;
     ALLEGRO_TIMER *timer = NULL;
+    ball.ball.start = false;
     printf("aca bien\n");
     load_game(estado_juego, &player, &ball, &arrangement);
     //printf("juego cargado\n");
@@ -308,18 +330,16 @@ void play(GAME_STATE *estado_juego) {
         } else if (event.type == ALLEGRO_EVENT_TIMER) {
             al_clear_to_color(al_map_rgb(0, 0, 0));
             procesar_entradas(estado_juego, &player, &ball);
-            actualizar_movimientos(&player, &ball);
+            if(ball.ball.start) {
+                printf("ball x: %.2f, ball y: %.2f\n", ball.ball.x, ball.ball.y);
+                actualizar_bala(&(ball.ball));
+                detectar_colisiones(&ball.ball, &player.player, arrangement.block, LVL_1_BLOCKS);
+            }
+            actualizar_movimientos(&player, &ball, &arrangement);
             al_flip_display();
         }
         //printf("procesar entradas\n");
     }
-
-
-
-
-
-
-
         // Limpiar recursos
     al_destroy_timer(timer);
     al_destroy_bitmap(player.player_bitmap);
@@ -330,3 +350,8 @@ void play(GAME_STATE *estado_juego) {
         }
     }
 }
+
+//PROXIMA TAREA, AGREGAR QUE REBOTE EN LA PLATAFORMA 
+//SEGÚN LA POSICIÓN DE LA PELOTA CUANDO TOQUE LA PLATAFORMA, EL ÁNGULO DE REBOTE DEBERÍA SER DIFERENTE
+//SI TOCA EN EL CENTRO, DEBERÍA REBOTAR VERTICALMENTE
+//SI TOCA EN LOS BORDES, DEBERÍA REBOTAR MÁS HORIZONTALMENTE

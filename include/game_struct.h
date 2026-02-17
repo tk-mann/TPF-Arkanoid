@@ -15,9 +15,11 @@ typedef struct{
 } PLAYER;
 
 typedef struct{
-	int x;
-	int y;
+	float x, y;
+    int size;
+    float prev_x, prev_y; // Para almacenar la posición anterior
     bool start;
+    float vx, vy;
 } BALL;
 
 typedef struct{
