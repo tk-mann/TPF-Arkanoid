@@ -1,9 +1,12 @@
 #include "game.h"
 #include <stdio.h>
 #include <math.h>
+
 #define TIME_TICK (1.0f/60.0f)
 #define GENERIC_W 512
 #define GENERIC_H 512
+#define PI 3.14159265f
+enum CARA { LEFT, RIGHT, UP, DOWN };
 
 void actualizar_bala(BALL *ball) {
     // Actualizar posición de la pelota
@@ -15,42 +18,12 @@ void actualizar_bala(BALL *ball) {
 
 }
 
-int detectar_colisiones(BALL *ball, PLAYER *player, BLOCK *blocks, int num_blocks) {
-    //deteccion colisión pared izquierda
-    if(ball->x <= 0){
-        ball->x = 0;
-        ball->vx = -ball->vx;
-    }
-    //deteccion colisión pared derecha
-    else if(ball->x >= GENERIC_W - ball->size){
-        ball->x = GENERIC_W- ball->size;
-        ball->vx = -ball->vx;
-    }
-    //deteccion colisión techo
-    if(ball->y <= 0){
-        ball->y = 0;
-        ball->vy = -ball->vy;
-    }
-    if(ball->y >= GENERIC_H - ball->size){
-        ball->y = GENERIC_H - ball->size;
-        ball->vy = -ball->vy;
-    }
-    //detección colisión bloque
-    int i;
-    for(i = 0; i < 6*5; i++){
-        if(blocks[i].alive){
-            if(ball->x < blocks[i].x + blocks[i].width &&
-               ball->x + ball->size > blocks[i].x &&
-               ball->y < blocks[i].y + blocks[i].height &&
-               ball->y + ball->size > blocks[i].y){ 
-                blocks[i].alive = false;
-                
-                // Método mejorado de rebote basado en delta y aspect ratio
-                // Usamos el centro de la pelota
-                
-                //NOTA MIA, LA VERDAD NO ENTENDÍ BIEN CÓMO FUNCIONA, lo saqué de una página
-                //pero como parece que funciona bien lo dejo
-                /*
+// Método mejorado de rebote basado en delta y aspect ratio
+// Usamos el centro de la pelota
+
+//NOTA MIA, LA VERDAD NO ENTENDÍ BIEN CÓMO FUNCIONA, lo saqué de una página
+//pero como parece que funciona bien lo dejo
+/*
                 
 Handling deflections off of blocks and walls is trivial if you 
 keep track of your ball’s angle as a direction vector, and keep
@@ -95,36 +68,125 @@ else
     }
 } 
                 */
-                
-                float ball_center_x = ball->x + ball->size / 2.0f;
-                float ball_center_y = ball->y + ball->size / 2.0f;
-                
-                // Centro del bloque
-                float block_center_x = blocks[i].x + blocks[i].width / 2.0f;
-                float block_center_y = blocks[i].y + blocks[i].height / 2.0f;
-                
-                // Delta desde el centro del bloque al centro de la pelota
-                float delta_x = ball_center_x - block_center_x;
-                float delta_y = ball_center_y - block_center_y;
-                
-                // Escalar delta por relación de aspecto inversa del bloque
-                float aspect_ratio = (float)blocks[i].width / (float)blocks[i].height;
-                delta_x = delta_x / aspect_ratio;
-                
-                // Determinar si es golpe horizontal o vertical comparando valores escalados
-                if(fabs(delta_x) > fabs(delta_y))
-                {
-                    // Golpe horizontal
+
+//si el golpe fue en el eje x, devuelve 1, 
+int determinar_cara(BALL *ball, int x, int y, int width, int height) {
+    // Resolver usando posición anterior para evitar que la pelota se meta en el objeto
+    // Fallback: usar delta y aspect ratio
+    float ball_center_x = ball->x + ball->size / 2.0f;
+    float ball_center_y = ball->y + ball->size / 2.0f;
+    
+    // Centro del bloque
+    float block_center_x = x + width / 2.0f;
+    float block_center_y = y + height / 2.0f;
+    
+    // Delta desde el centro del bloque al centro de la pelota
+    float delta_x = ball_center_x - block_center_x;
+    float delta_y = ball_center_y - block_center_y;
+    
+    // Escalar delta por relación de aspecto inversa del bloque
+    float aspect_ratio = (float)width / (float)height;
+    delta_x = delta_x / aspect_ratio;
+    
+    // Determinar si es golpe horizontal o vertical comparando valores escalados
+    if(fabs(delta_x) > fabs(delta_y))
+    {
+        // Golpe horizontal
+        if(delta_x > 0) {
+            ball->x = x + width;
+            return RIGHT;
+        } else {
+            ball->x = x - ball->size;
+            return LEFT;
+        }
+    }
+    else
+    {
+        // Golpe vertical
+        if(delta_y > 0) {
+            ball->y = y + height;
+            return DOWN;
+        } else {
+            ball->y = y - ball->size;
+            return UP;
+        }
+    }
+}
+
+
+
+int detectar_colisiones(BALL *ball, PLAYER *player, BLOCK *blocks, int num_blocks) {
+    //deteccion colisión pared izquierda
+    if(ball->x <= 0){
+        ball->x = 0;
+        ball->vx = -ball->vx;
+    }
+    //deteccion colisión pared derecha
+    else if(ball->x >= GENERIC_W - ball->size){
+        ball->x = GENERIC_W- ball->size;
+        ball->vx = -ball->vx;
+    }
+    //deteccion colisión techo
+    if(ball->y <= 0){
+        ball->y = 0;
+        ball->vy = -ball->vy;
+    }
+    if(ball->y >= GENERIC_H - ball->size){
+        ball->y = GENERIC_H - ball->size;
+        ball->vy = -ball->vy;
+    }
+    //detección colisión bloque
+    int i;
+    for(i = 0; i < num_blocks; i++){
+        if(blocks[i].alive){
+            if(ball->x < blocks[i].x + blocks[i].width &&
+               ball->x + ball->size > blocks[i].x &&
+               ball->y < blocks[i].y + blocks[i].height &&
+               ball->y + ball->size > blocks[i].y){ 
+                blocks[i].alive = false;
+                int cara = determinar_cara(ball, blocks[i].x, blocks[i].y, blocks[i].width, blocks[i].height);
+                if(cara == LEFT || cara == RIGHT){
                     ball->vx = -ball->vx;
-                }
-                else
-                {
-                    // Golpe vertical
+                } else {
                     ball->vy = -ball->vy;
                 }
-                return 0;
+                return;
             }
         }
     }
+    //detección colisión jugador
+    if(ball->x < player->x + player->width &&
+        ball->x + ball->size > player->x &&
+        ball->y < player->y + player->height &&
+        ball->y + ball->size > player->y){
+        int cara = determinar_cara(ball, player->x, player->y, player->width, player->height);
+        printf("Colisión con jugador, cara: %d\n", cara);
+        if(cara == UP){
+            // Ajustar la velocidad horizontal de la pelota según el punto de impacto en el jugador
+            float impact_point = (ball->x + ball->size / 2.0f) - (player->x + player->width / 2.0f);
+            float max_impact = player->width / 2.0f;
+            float normalized_impact = impact_point / max_impact; // Rango de -1 a 1
+            float speed = sqrtf(ball->vx * ball->vx + ball->vy * ball->vy);
+            float sign = (normalized_impact >= 0.0f) ? 1.0f : -1.0f;
 
+            if(fabs(normalized_impact) <= 0.3f) {
+                //printf("<0.3\n");
+                ball->vy = -ball->vy;
+            }
+            else if(fabs(normalized_impact) > 0.3f && fabs(normalized_impact) <= 0.7f){
+                //printf("<0.7\n");
+                float angle_deg = 30.0f;
+                float angle_rad = angle_deg * (PI / 180.0f);
+                ball->vx = sign * speed * cosf(angle_rad);
+                ball->vy = -speed * sinf(angle_rad);
+            } else {
+                printf(">0.7\n");
+                float angle_deg = 150.0f;
+                float angle_rad = angle_deg * (PI / 180.0f);
+                ball->vx = -sign * speed * cosf(angle_rad);
+                ball->vy = -speed * sinf(angle_rad);
+            }
+        }
+    }
+    return;
 }

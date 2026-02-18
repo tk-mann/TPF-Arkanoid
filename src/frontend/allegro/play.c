@@ -20,8 +20,7 @@ extern ALLEGRO_FONT * font;
 enum KEYS { KEY_LEFT=0, KEY_RIGHT, KEY_SPACE, KEY_ESCAPE };
 
 //variables de posicion y movimiento
-#define NAVE_MOVE_RATE  4   
-#define BALL_MOVE_RATE 3
+#define NAVE_MOVE_RATE  2   
 
 // Estado de teclas
 static bool key_pressed[4] = {false, false, false, false};
@@ -42,10 +41,26 @@ typedef struct{
     BALL ball;
 } ALL_BALL;
 
+void indicadores(GAME_STATE *estado_juego) {
+    char puntos_text[20];
+    char vidas_text[20];
+    char nivel_text[20];
+
+    sprintf(puntos_text, "Puntos: %d", estado_juego->points);
+    sprintf(vidas_text, "Vidas: %d", estado_juego->vidas);
+    sprintf(nivel_text, "Nivel: %d", estado_juego->level);
+
+    al_draw_text(font, al_map_rgb(255, 255, 255), 10, 10, 0, puntos_text);
+    al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W/2 - al_get_text_width(font, vidas_text)/2, 10, 0, vidas_text);
+    al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W - 100, 10, 0, nivel_text);
+}
+
+
+
 void actualizar_bloques(BLOCK_ARRANGE_1 *arrangement) {
     // Aquí puedes agregar lógica para actualizar la animación de los bloques, la pelota y el jugador
     // Por ejemplo, podrías cambiar el bitmap del bloque según su estado o animar la pelota al moverse
-    for (int i = 0; i < 6*5; i++) {
+    for (int i = 0; i < LVL_1_BLOCKS; i++) {
         if (arrangement->block[i].alive) {
             al_draw_bitmap(arrangement->block_bitmaps[i], arrangement->block[i].x, arrangement->block[i].y, 0);
         }
@@ -124,7 +139,7 @@ void procesar_entradas(GAME_STATE *estado_juego, ALL_PLAYER * player, ALL_BALL *
         if (key_pressed[KEY_SPACE] && ball->ball.start == false) {
             ball->ball.start = true;
             ball->ball.vx = -5;
-            ball->ball.vy = -1;
+            ball->ball.vy = -5;
             printf("¡Disparo!\n");
         }
         //procesa pausa
@@ -229,7 +244,7 @@ int init_level_1(GAME_STATE *estado_juego, BLOCK_ARRANGE_1 *arrangement) {
     // Por ejemplo, podrías cargar un mapa específico para el nivel 1
   // Inicializar bloques
   const int rows = 6;
-  const int cols = 5;
+  const int cols = 11;
   const float start_x = 0.0f;
   const float start_y = 30.0f;
   const float padding = 0.0f;
@@ -278,6 +293,8 @@ void load_game(GAME_STATE *estado_juego, ALL_PLAYER *player, ALL_BALL *ball, BLO
     // Por ejemplo, podrías cargar un mapa específico para cada nivel
     al_clear_to_color(al_map_rgb(0, 0, 0));
     player->player_bitmap =  create_block_bitmap(COLOR_ORANGE, PLAYER_WIDTH, PLAYER_HEIGHT);
+    player->player.width = PLAYER_WIDTH;
+    player->player.height = PLAYER_HEIGHT;
     al_draw_bitmap(player->player_bitmap, PLAYER_START_X, PLAYER_START_Y, 0);
     ball->ball_bitmap = create_ball_bitmap(8, al_map_rgb(255, 255, 255));
     ball->ball.size = 16;
@@ -331,11 +348,13 @@ void play(GAME_STATE *estado_juego) {
             al_clear_to_color(al_map_rgb(0, 0, 0));
             procesar_entradas(estado_juego, &player, &ball);
             if(ball.ball.start) {
-                printf("ball x: %.2f, ball y: %.2f\n", ball.ball.x, ball.ball.y);
+          //      printf("ball x: %.2f, ball y: %.2f\n", ball.ball.x, ball.ball.y);
                 actualizar_bala(&(ball.ball));
                 detectar_colisiones(&ball.ball, &player.player, arrangement.block, LVL_1_BLOCKS);
             }
             actualizar_movimientos(&player, &ball, &arrangement);
+            indicadores(estado_juego);
+            detectar_condiciones(estado_juego, arrangement.block, LVL_1_BLOCKS);
             al_flip_display();
         }
         //printf("procesar entradas\n");

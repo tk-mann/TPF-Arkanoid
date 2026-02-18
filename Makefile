@@ -7,7 +7,7 @@ OBJS := $(SRCS:.c=.o)
 OBJS := $(OBJS:.g=.o)
 
 CFLAGS = -Wall -Iinclude
-LDFLAGS = -lallegro -lallegro_primitives -lallegro_image -lallegro_font -lallegro_ttf -lallegro_color
+LDFLAGS = -lm -lallegro -lallegro_primitives -lallegro_image -lallegro_font -lallegro_ttf -lallegro_color
 
 TARGET = output_game
 
