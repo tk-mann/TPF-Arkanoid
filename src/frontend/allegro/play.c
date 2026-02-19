@@ -3,6 +3,7 @@
 #include "game_struct.h"
 #include <allegro5/allegro_color.h>
 #include "backend.h"
+#include <stdio.h>
 
 // Variables externas
 extern ALLEGRO_EVENT_QUEUE *event_queue;
@@ -20,7 +21,8 @@ extern ALLEGRO_FONT * font;
 enum KEYS { KEY_LEFT=0, KEY_RIGHT, KEY_SPACE, KEY_ESCAPE };
 
 //variables de posicion y movimiento
-#define NAVE_MOVE_RATE  2   
+#define NAVE_MOVE_RATE  4   
+#define BALL_INIT_RATE  5
 
 // Estado de teclas
 static bool key_pressed[4] = {false, false, false, false};
@@ -122,24 +124,25 @@ void procesar_entradas(GAME_STATE *estado_juego, ALL_PLAYER * player, ALL_BALL *
     if (key_pressed[KEY_LEFT]) {
           if ((player->player.x - NAVE_MOVE_RATE) >= 0) {
             player->player.x -= NAVE_MOVE_RATE;
-            if(ball->ball.start == false){
+            if(ball->ball.state == WAIT){
                 ball->ball.x -= NAVE_MOVE_RATE;
             }
           }
         }
         //procesa movimiento hacia lado derecho
         else if (key_pressed[KEY_RIGHT]) {
-          if ((player->player.x + NAVE_MOVE_RATE) <= (ALLEGRO_W - PLAYER_WIDTH)) 
-            player->player.x += NAVE_MOVE_RATE;
-            if(ball->ball.start == false){
-                ball->ball.x += NAVE_MOVE_RATE;
+            if ((player->player.x + NAVE_MOVE_RATE) + PLAYER_WIDTH <= (ALLEGRO_W)){
+                player->player.x += NAVE_MOVE_RATE;
+                if(ball->ball.state == WAIT){
+                    ball->ball.x += NAVE_MOVE_RATE;
+                }  
             }
         }
         //procesa disparo
-        if (key_pressed[KEY_SPACE] && ball->ball.start == false) {
-            ball->ball.start = true;
-            ball->ball.vx = -5;
-            ball->ball.vy = -5;
+        if (key_pressed[KEY_SPACE] && ball->ball.state == WAIT) {
+            ball->ball.state = PLAY;
+            ball->ball.vx = -BALL_INIT_RATE;
+            ball->ball.vy = -BALL_INIT_RATE;
             printf("¡Disparo!\n");
         }
         //procesa pausa
@@ -271,8 +274,19 @@ int init_level_1(GAME_STATE *estado_juego, BLOCK_ARRANGE_1 *arrangement) {
           arrangement->block[index].y = (int)y;
           arrangement->block[index].width = (int)BLOCK_WIDTH;
           arrangement->block[index].height = (int)BLOCK_HEIGHT;
-          arrangement->block[index].type = 0;
           arrangement->block[index].alive = true;
+          arrangement->block[index].dureza = 1;
+          switch(arrangement->block[index].dureza){
+            case 1:
+                arrangement->block[index].type = NORMAL;
+                break;
+            case 2:
+                arrangement->block[index].type = HEAVY;
+                break;
+            case -1:
+                arrangement->block[index].type = UNBREAKABLE;
+                break;
+          }
 
           arrangement->block_bitmaps[index] = create_block_bitmap(row_colors[r], (int)BLOCK_WIDTH, (int)BLOCK_HEIGHT);
           al_draw_bitmap(arrangement->block_bitmaps[index], x, y, 0);
@@ -295,14 +309,15 @@ void load_game(GAME_STATE *estado_juego, ALL_PLAYER *player, ALL_BALL *ball, BLO
     player->player_bitmap =  create_block_bitmap(COLOR_ORANGE, PLAYER_WIDTH, PLAYER_HEIGHT);
     player->player.width = PLAYER_WIDTH;
     player->player.height = PLAYER_HEIGHT;
+    player->player.x = PLAYER_START_X;
+    player->player.y = PLAYER_START_Y;
     al_draw_bitmap(player->player_bitmap, PLAYER_START_X, PLAYER_START_Y, 0);
     ball->ball_bitmap = create_ball_bitmap(8, al_map_rgb(255, 255, 255));
     ball->ball.size = 16;
-    al_draw_bitmap(ball->ball_bitmap, PLAYER_START_X + 50 - 8, PLAYER_START_Y - 16, 0);
-    ball->ball.x = PLAYER_START_X + 50 - 8;
-    ball->ball.y = PLAYER_START_Y - 16;
-    player->player.x = PLAYER_START_X;
-    player->player.y = PLAYER_START_Y;
+    ball->ball.state = WAIT;
+    ball->ball.x = PLAYER_START_X + player->player.width / 2 - ball->ball.size / 2;
+    ball->ball.y = PLAYER_START_Y - ball->ball.size;
+    al_draw_bitmap(ball->ball_bitmap, ball->ball.x, ball->ball.y, 0);
     switch(estado_juego->level) {
         case 1:
             init_level_1(estado_juego, arrangement);
@@ -325,52 +340,63 @@ void play(GAME_STATE *estado_juego) {
     ALL_BALL ball;
     BLOCK_ARRANGE_1 arrangement;
     ALLEGRO_TIMER *timer = NULL;
-    ball.ball.start = false;
-    printf("aca bien\n");
+    //printf("aca bien\n");
     load_game(estado_juego, &player, &ball, &arrangement);
     //printf("juego cargado\n");
     timer = al_create_timer(1.0 / FPS);
     if (!timer) {
         estado_juego -> state = SALIR;
     }
-    al_register_event_source(event_queue, al_get_keyboard_event_source()); //REGISTRAMOS EL TECLAD
     al_register_event_source(event_queue, al_get_timer_event_source(timer));
     al_start_timer(timer);
-    //printf("timer iniciado\n");
+    printf("timer iniciado\n");
     while(estado_juego->state == JUGAR) {
         al_clear_to_color(al_map_rgb(0, 0, 0));
-        //printf("dentro del while\n");
+        printf("dentro del while\n");
         al_wait_for_event(event_queue, &event);
-        
         if (event.type == ALLEGRO_EVENT_KEY_DOWN || event.type == ALLEGRO_EVENT_KEY_UP) {
             registrar_teclas();
         } else if (event.type == ALLEGRO_EVENT_TIMER) {
             al_clear_to_color(al_map_rgb(0, 0, 0));
             procesar_entradas(estado_juego, &player, &ball);
-            if(ball.ball.start) {
-          //      printf("ball x: %.2f, ball y: %.2f\n", ball.ball.x, ball.ball.y);
+            if(ball.ball.state == PLAY) {
+                printf("ball x: %.2f, ball y: %.2f\n", ball.ball.x, ball.ball.y);
                 actualizar_bala(&(ball.ball));
-                detectar_colisiones(&ball.ball, &player.player, arrangement.block, LVL_1_BLOCKS);
+                detectar_colisiones(estado_juego, &ball.ball, &player.player, arrangement.block, LVL_1_BLOCKS);
+            }
+            else if(ball.ball.state == RESET) {
+                ball.ball.x = player.player.x + player.player.width / 2 - ball.ball.size / 2;
+                ball.ball.y = PLAYER_START_Y - ball.ball.size;
+                ball.ball.vx = 0;
+                ball.ball.vy = 0;
+                ball.ball.state = WAIT;
             }
             actualizar_movimientos(&player, &ball, &arrangement);
             indicadores(estado_juego);
-            detectar_condiciones(estado_juego, arrangement.block, LVL_1_BLOCKS);
+            detectar_condiciones(estado_juego, arrangement.block, &ball.ball, LVL_1_BLOCKS);
             al_flip_display();
         }
         //printf("procesar entradas\n");
     }
-        // Limpiar recursos
+    
+    // Limpiar recursos de forma ordenada
+    al_unregister_event_source(event_queue, al_get_timer_event_source(timer));
     al_destroy_timer(timer);
+    timer = NULL;
+    
     al_destroy_bitmap(player.player_bitmap);
+    player.player_bitmap = NULL;
+    
     al_destroy_bitmap(ball.ball_bitmap);
+    ball.ball_bitmap = NULL;
+    
     for (int i = 0; i < LVL_1_BLOCKS; i++) {
         if (arrangement.block_bitmaps[i]) {
-            al_destroy_bitmap(arrangement.block_bitmaps[i]);    
+            al_destroy_bitmap(arrangement.block_bitmaps[i]);
+            arrangement.block_bitmaps[i] = NULL;
         }
     }
 }
 
-//PROXIMA TAREA, AGREGAR QUE REBOTE EN LA PLATAFORMA 
-//SEGÚN LA POSICIÓN DE LA PELOTA CUANDO TOQUE LA PLATAFORMA, EL ÁNGULO DE REBOTE DEBERÍA SER DIFERENTE
-//SI TOCA EN EL CENTRO, DEBERÍA REBOTAR VERTICALMENTE
-//SI TOCA EN LOS BORDES, DEBERÍA REBOTAR MÁS HORIZONTALMENTE
+//TODAVÍA TIENE UN COMPORTAMIENTO RARO CUANDO CHOCA DE COSTADO
+//TAL VEZ SE ARRGLE ENSANCHANDO UN POCO MÁS EL AREA DE COLISIÓN

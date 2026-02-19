@@ -216,12 +216,6 @@ int menu_pausa() {
    return opcion;
 }
 
-//YA TERMINE BÁSICAMENTE LA IMPRESIÓN EN PANBTALLA
-//AHORA DEBERÍA PONERME A VER EL TEMA DEL BACKEND
-//Y COMO SE MUEVE LA PELOTA E INTERACTUA CON EL ENTORNO
-//QUE PASA CUANDO TETECTA COLISION Y TODO ESO
-
-
 void end_phase(GAME_STATE * estado_juego) {
    ALLEGRO_BITMAP * backsquare_1 = al_create_bitmap(150, 50);
    ALLEGRO_BITMAP * backsquare_2 = al_create_bitmap(60, 50);

@@ -4,7 +4,6 @@
 #define ALLEGRO_W  512
 #define ALLEGRO_H 512
 #define FPS 60
-enum ESTADOS{DERROTA, VICTORIA, JUGAR, SALIR, REINICIAR};
 
 #include "game_struct.h"
 #include <allegro5/allegro.h>

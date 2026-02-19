@@ -113,9 +113,7 @@ int determinar_cara(BALL *ball, int x, int y, int width, int height) {
     }
 }
 
-
-
-int detectar_colisiones(BALL *ball, PLAYER *player, BLOCK *blocks, int num_blocks) {
+int detectar_colisiones(GAME_STATE *estado_juego, BALL *ball, PLAYER *player, BLOCK *blocks, int num_blocks) {
     //deteccion colisión pared izquierda
     if(ball->x <= 0){
         ball->x = 0;
@@ -140,15 +138,27 @@ int detectar_colisiones(BALL *ball, PLAYER *player, BLOCK *blocks, int num_block
     for(i = 0; i < num_blocks; i++){
         if(blocks[i].alive){
             if(ball->x < blocks[i].x + blocks[i].width &&
-               ball->x + ball->size > blocks[i].x &&
-               ball->y < blocks[i].y + blocks[i].height &&
-               ball->y + ball->size > blocks[i].y){ 
-                blocks[i].alive = false;
+            ball->x + ball->size > blocks[i].x &&
+            ball->y < blocks[i].y + blocks[i].height &&
+            ball->y + ball->size > blocks[i].y){ 
                 int cara = determinar_cara(ball, blocks[i].x, blocks[i].y, blocks[i].width, blocks[i].height);
                 if(cara == LEFT || cara == RIGHT){
                     ball->vx = -ball->vx;
                 } else {
                     ball->vy = -ball->vy;
+                }
+                if(blocks[i].type != UNBREAKABLE){
+                    blocks[i].dureza--;
+                    printf("Colisión con bloque, tipo: %d, dureza restante: %d\n", blocks[i].type, blocks[i].dureza);
+                    if((blocks[i].dureza) <= 0){
+                        if(blocks[i].type == HEAVY){
+                            estado_juego->points += 20;
+                        } else {
+                            estado_juego->points += 10;
+                        }
+                    blocks[i].alive = false;
+                    blocks[i].dead_block++;
+                    }
                 }
                 return;
             }
@@ -189,4 +199,18 @@ int detectar_colisiones(BALL *ball, PLAYER *player, BLOCK *blocks, int num_block
         }
     }
     return;
+}
+
+
+void detectar_condiciones(GAME_STATE* estado, BLOCK *blocks, BALL *ball, int num_blocks) {
+    if(ball->y + ball->size >= GENERIC_H) {
+        estado->vidas--;
+        ball->state = RESET;
+    }
+    if(estado->vidas <= 0 || blocks->dead_block >= num_blocks) {
+        estado->state = DERROTA; // Game Over
+    }
+    if(blocks->dead_block >= num_blocks) {
+        estado->state = VICTORIA; // Victoria
+    }
 }
