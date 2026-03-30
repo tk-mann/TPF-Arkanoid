@@ -2,8 +2,12 @@
 #define FRONTEND_H_
 
 #define ALLEGRO_W  512
-#define ALLEGRO_H 512
+#define ALLEGRO_H 550
+#define HEIGHT_LIMIT 512
+#define TOP_PADDING ALLEGRO_H - HEIGHT_LIMIT
 #define FPS 60
+
+
 
 #include "game_struct.h"
 #include <allegro5/allegro.h>
@@ -13,8 +17,10 @@
 #include <allegro5/allegro_ttf.h> //Manejo de ttfs
 #include <allegro5/allegro_color.h> //Manejo de colores
 #include <time.h>
+#include <stdio.h>
 
 int menu();
+int menu_pausa();
 int init(GAME_STATE *estado_juego);
 
 void play(GAME_STATE *estado_juego);

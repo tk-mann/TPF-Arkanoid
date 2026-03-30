@@ -4,15 +4,20 @@
 #include <allegro5/allegro_color.h>
 #include "backend.h"
 #include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+
 
 // Variables externas
 extern ALLEGRO_EVENT_QUEUE *event_queue;
 extern ALLEGRO_EVENT event;
 extern ALLEGRO_FONT * font;
+ALLEGRO_TIMER *timer = NULL;
 
 #define BLOCK_WIDTH  (ALLEGRO_W / 11.0f)  // ≈ 46.5 píxeles
 #define BLOCK_HEIGHT 16.0f 
-#define LVL_1_BLOCKS 66 
+#define LVL_1_BLOCKS 66
+#define LVL_2_BLOCKS 66 
 #define PLAYER_START_X (ALLEGRO_W / 2 - 50) // Centrado horizontalmente
 #define PLAYER_START_Y (ALLEGRO_H - 50) // Cerca del borde inferior
 #define PLAYER_WIDTH 100
@@ -20,18 +25,19 @@ extern ALLEGRO_FONT * font;
 
 enum KEYS { KEY_LEFT=0, KEY_RIGHT, KEY_SPACE, KEY_ESCAPE };
 
+
 //variables de posicion y movimiento
-#define NAVE_MOVE_RATE  4   
+#define NAVE_MOVE_RATE  5 
 #define BALL_INIT_RATE  5
 
 // Estado de teclas
 static bool key_pressed[4] = {false, false, false, false};
-static bool not_duplicate = true;
 
 typedef struct{
-	BLOCK block[LVL_1_BLOCKS];
-    ALLEGRO_BITMAP *block_bitmaps[LVL_1_BLOCKS];
-} BLOCK_ARRANGE_1;
+	BLOCK *block;
+    ALLEGRO_BITMAP **block_bitmaps;
+    int num_blocks;
+} BLOCK_ARRANGE;
 
 typedef struct{
 	ALLEGRO_BITMAP *player_bitmap;
@@ -48,6 +54,7 @@ void indicadores(GAME_STATE *estado_juego) {
     char vidas_text[20];
     char nivel_text[20];
 
+
     sprintf(puntos_text, "Puntos: %d", estado_juego->points);
     sprintf(vidas_text, "Vidas: %d", estado_juego->vidas);
     sprintf(nivel_text, "Nivel: %d", estado_juego->level);
@@ -57,12 +64,30 @@ void indicadores(GAME_STATE *estado_juego) {
     al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W - 100, 10, 0, nivel_text);
 }
 
+BLOCK_ARRANGE create_block_arrangement(int level){
+    BLOCK_ARRANGE p;
+    int size;
+    switch(level){
+        case 1:
+            size = LVL_1_BLOCKS;
+            break;
+        case 2:
+            size = LVL_2_BLOCKS;
+            break;
+        default:
+            size = LVL_1_BLOCKS;
+            break;
+    }
+    p.block_bitmaps = malloc(sizeof(ALLEGRO_BITMAP*)*size);
+    p.block = malloc(sizeof(BLOCK)*size);
+    p.num_blocks = size;
+    return p;
+}
 
-
-void actualizar_bloques(BLOCK_ARRANGE_1 *arrangement) {
+void actualizar_bloques(BLOCK_ARRANGE *arrangement, int num_blocks) {
     // Aquí puedes agregar lógica para actualizar la animación de los bloques, la pelota y el jugador
     // Por ejemplo, podrías cambiar el bitmap del bloque según su estado o animar la pelota al moverse
-    for (int i = 0; i < LVL_1_BLOCKS; i++) {
+    for (int i = 0; i < num_blocks; i++) {
         if (arrangement->block[i].alive) {
             al_draw_bitmap(arrangement->block_bitmaps[i], arrangement->block[i].x, arrangement->block[i].y, 0);
         }
@@ -70,12 +95,13 @@ void actualizar_bloques(BLOCK_ARRANGE_1 *arrangement) {
 }
 
 
-void actualizar_movimientos(ALL_PLAYER *player, ALL_BALL *ball, BLOCK_ARRANGE_1 *arrangement) {
+void actualizar_movimientos(ALL_PLAYER *player, ALL_BALL *ball, BLOCK_ARRANGE *arrangement) {
     // Aquí puedes agregar lógica para actualizar la animación de los bloques, la pelota y el jugador
     // Por ejemplo, podrías cambiar el bitmap del bloque según su estado o animar la pelota al moverse
     al_draw_bitmap(ball->ball_bitmap, ball->ball.x, ball->ball.y, 0);
     al_draw_bitmap(player->player_bitmap, player->player.x, player->player.y, 0);
-    actualizar_bloques(arrangement);
+    al_draw_line(0, TOP_PADDING, ALLEGRO_W, TOP_PADDING, al_map_rgb(255, 255, 255), 2);
+    actualizar_bloques(arrangement, arrangement->num_blocks );
 }
 
 //YA TERMINE BÁSICAMENTE LA IMPRESIÓN EN PANBTALLA
@@ -143,12 +169,14 @@ void procesar_entradas(GAME_STATE *estado_juego, ALL_PLAYER * player, ALL_BALL *
             ball->ball.state = PLAY;
             ball->ball.vx = -BALL_INIT_RATE;
             ball->ball.vy = -BALL_INIT_RATE;
-            printf("¡Disparo!\n");
+            // printf("¡Disparo!\n");
         }
         //procesa pausa
         if (key_pressed[KEY_ESCAPE]) {
-          estado_juego -> state = menu_pausa();
-          key_pressed[KEY_ESCAPE] = 0;
+            al_stop_timer(timer);
+            estado_juego -> state = menu_pausa();
+            al_start_timer(timer);
+            key_pressed[KEY_ESCAPE] = 0;
         }
 }
 
@@ -242,15 +270,13 @@ static ALLEGRO_BITMAP* create_block_bitmap(BlockColor color, int width, int heig
 }
 
 
-int init_level_1(GAME_STATE *estado_juego, BLOCK_ARRANGE_1 *arrangement) {
+int init_level_1(GAME_STATE *estado_juego, BLOCK_ARRANGE *arrangement) {
     // Aquí puedes inicializar las variables del juego para el nivel 1
     // Por ejemplo, podrías cargar un mapa específico para el nivel 1
   // Inicializar bloques
   const int rows = 6;
   const int cols = 11;
-  const float start_x = 0.0f;
-  const float start_y = 30.0f;
-  const float padding = 0.0f;
+  const float start_y = 30.0f + TOP_PADDING;    // Ajustar según el espacio que quieras dejar en la parte superior
 
   BlockColor row_colors[6] = {
       COLOR_GRAY,
@@ -267,15 +293,20 @@ int init_level_1(GAME_STATE *estado_juego, BLOCK_ARRANGE_1 *arrangement) {
           if (index >= LVL_1_BLOCKS) {
               break;
           }
-          float x = start_x + c * (BLOCK_WIDTH + padding);
-          float y = start_y + r * (BLOCK_HEIGHT + padding);
+          float x = c * (BLOCK_WIDTH);
+          float y = start_y + r * (BLOCK_HEIGHT);
 
           arrangement->block[index].x = (int)x;
           arrangement->block[index].y = (int)y;
           arrangement->block[index].width = (int)BLOCK_WIDTH;
           arrangement->block[index].height = (int)BLOCK_HEIGHT;
           arrangement->block[index].alive = true;
+          if(row_colors[r] == COLOR_GRAY){
+            arrangement->block[index].dureza = 2;
+          }
+          else{
           arrangement->block[index].dureza = 1;
+          }
           switch(arrangement->block[index].dureza){
             case 1:
                 arrangement->block[index].type = NORMAL;
@@ -296,15 +327,72 @@ int init_level_1(GAME_STATE *estado_juego, BLOCK_ARRANGE_1 *arrangement) {
   return 0;
 }
 
-int init_level_2(GAME_STATE *estado_juego) {
-    // Aquí puedes inicializar las variables del juego para el nivel 2
-    // Por ejemplo, podrías cargar un mapa específico para el nivel 2
+int init_level_2(GAME_STATE *estado_juego, BLOCK_ARRANGE *arrangement) {
+    // Nivel 2: Patrón diagonal escalonado
+    const int cols = 11;
+    const float start_y = 30.0f + TOP_PADDING;    // Ajustar según el espacio que quieras dejar en la parte superior
+    
+    // Patrón diagonal: cada fila tiene bloques desplazados
+    // Fila inferior: bloques grises (dureza 3)
+    // Filas superiores: patrón diagonal de colores (dureza 2)
+    
+    BlockColor diagonal_colors[5] = {
+        COLOR_ORANGE,  // Color para diagonal 1
+        COLOR_CYAN,    // Color para diagonal 2
+        COLOR_GREEN,   // Color para diagonal 3
+        COLOR_BLUE,    // Color para diagonal 4
+        COLOR_RED      // Color para diagonal 5
+    };
+    
+    int index = 0;
+    int desplazamiento = 0;
+    // Crear patrón escalonado (10 filas): 11, 10, ..., 1
+    // Los bloques se eliminan desde arriba hacia abajo, formando un escalón
+    for (int c = 0; c < cols; c++) {
+        int blocks_in_row = 11 - c;  // Cada fila tiene un bloque menos
+        
+        for (int r = 0; r < blocks_in_row; r++) {
+            if (index >= LVL_1_BLOCKS) break;
+            
+            float x = c * BLOCK_WIDTH;  // Sin desplazamiento horizontal
+            float y = start_y + r * BLOCK_HEIGHT + desplazamiento;
+            
+            arrangement->block[index].x = (int)x;
+            arrangement->block[index].y = (int)y;
+            arrangement->block[index].width = (int)BLOCK_WIDTH;
+            arrangement->block[index].height = (int)BLOCK_HEIGHT;
+            arrangement->block[index].alive = true;
+            
+            // Fila inferior (r == 9): bloques grises con dureza 3
+            if (r+1 == blocks_in_row && c != 10) {
+                arrangement->block[index].dureza = 3;
+                arrangement->block[index].type = HEAVY;
+                arrangement->block_bitmaps[index] = create_block_bitmap(COLOR_GRAY, (int)BLOCK_WIDTH, (int)BLOCK_HEIGHT);
+            } else {
+                // Bloques de colores con dureza 2
+                arrangement->block[index].dureza = 2;
+                arrangement->block[index].type = HEAVY;
+                
+                // Asignar color según la columna relativa a la diagonal
+                int color_index = c % 5;
+                arrangement->block_bitmaps[index] = create_block_bitmap(diagonal_colors[color_index], (int)BLOCK_WIDTH, (int)BLOCK_HEIGHT);
+            }
+            
+            al_draw_bitmap(arrangement->block_bitmaps[index], x, y, 0);
+            index++;
+        }
+        desplazamiento += BLOCK_HEIGHT;  // Ajusta el valor según el efecto deseado
+    }
+    
+    return 0;
 }
 
 
-void load_game(GAME_STATE *estado_juego, ALL_PLAYER *player, ALL_BALL *ball, BLOCK_ARRANGE_1 *arrangement) {
+void load_game(GAME_STATE *estado_juego, ALL_PLAYER *player, ALL_BALL *ball, BLOCK_ARRANGE *arrangement) {
     // Aquí puedes inicializar las variables del juego según el nivel
     // Por ejemplo, podrías cargar un mapa específico para cada nivel
+    estado_juego->dead_blocks = 0;  // Resetear contador de bloques muertos
+    estado_juego->block_counter = 0;
     al_clear_to_color(al_map_rgb(0, 0, 0));
     player->player_bitmap =  create_block_bitmap(COLOR_ORANGE, PLAYER_WIDTH, PLAYER_HEIGHT);
     player->player.width = PLAYER_WIDTH;
@@ -315,88 +403,98 @@ void load_game(GAME_STATE *estado_juego, ALL_PLAYER *player, ALL_BALL *ball, BLO
     ball->ball_bitmap = create_ball_bitmap(8, al_map_rgb(255, 255, 255));
     ball->ball.size = 16;
     ball->ball.state = WAIT;
+    ball->ball.speed_factor = 1.0f;  // Inicializar factor de velocidad
     ball->ball.x = PLAYER_START_X + player->player.width / 2 - ball->ball.size / 2;
     ball->ball.y = PLAYER_START_Y - ball->ball.size;
+    ball->ball.speed_factor = 0.0f;
+    ball->ball.speed = BALL_INIT_RATE;
     al_draw_bitmap(ball->ball_bitmap, ball->ball.x, ball->ball.y, 0);
     switch(estado_juego->level) {
         case 1:
             init_level_1(estado_juego, arrangement);
              break;
         case 2:
-            init_level_2(estado_juego);
+            init_level_2(estado_juego, arrangement);
             break;
         // Agrega más casos para niveles adicionales
-        default:
-            // Inicializar un nivel por defecto o mostrar un mensaje de error
-            break;
     }
    al_flip_display();
 }
 
 
 
+void cleanup_play_resources(ALL_PLAYER *player, ALL_BALL *ball, BLOCK_ARRANGE *arrangement, ALLEGRO_TIMER *timer) {
+    if (timer) {
+        al_unregister_event_source(event_queue, al_get_timer_event_source(timer));
+        al_destroy_timer(timer);
+    }
+    
+    if (player->player_bitmap) {
+        al_destroy_bitmap(player->player_bitmap);
+        player->player_bitmap = NULL;
+    }
+    
+    if (ball->ball_bitmap) {
+        al_destroy_bitmap(ball->ball_bitmap);
+        ball->ball_bitmap = NULL;
+    }
+    
+    for (int i = 0; i < arrangement->num_blocks; i++) {
+        if (arrangement->block_bitmaps[i]) {
+            al_destroy_bitmap(arrangement->block_bitmaps[i]);
+            arrangement->block_bitmaps[i] = NULL;
+        }
+    }
+    for(int i=0;i<4;i++){
+        key_pressed[i] = false;
+    }
+    free(arrangement->block_bitmaps);
+    free(arrangement->block);
+    arrangement->block_bitmaps = NULL;
+    arrangement->block = NULL;
+}
+
+
 void play(GAME_STATE *estado_juego) {
-    ALL_PLAYER player;
-    ALL_BALL ball;
-    BLOCK_ARRANGE_1 arrangement;
-    ALLEGRO_TIMER *timer = NULL;
-    //printf("aca bien\n");
+    ALL_PLAYER player = {0};
+    ALL_BALL ball = {0};
+    BLOCK_ARRANGE arrangement = create_block_arrangement(estado_juego->level);
+
+
     load_game(estado_juego, &player, &ball, &arrangement);
-    //printf("juego cargado\n");
     timer = al_create_timer(1.0 / FPS);
     if (!timer) {
-        estado_juego -> state = SALIR;
+        cleanup_play_resources(&player, &ball, &arrangement, NULL);
+        estado_juego->state = SALIR;
+        return;
     }
     al_register_event_source(event_queue, al_get_timer_event_source(timer));
     al_start_timer(timer);
-    printf("timer iniciado\n");
+    int redraw = 0;
     while(estado_juego->state == JUGAR) {
-        al_clear_to_color(al_map_rgb(0, 0, 0));
-        printf("dentro del while\n");
+
         al_wait_for_event(event_queue, &event);
         if (event.type == ALLEGRO_EVENT_KEY_DOWN || event.type == ALLEGRO_EVENT_KEY_UP) {
             registrar_teclas();
         } else if (event.type == ALLEGRO_EVENT_TIMER) {
             al_clear_to_color(al_map_rgb(0, 0, 0));
+            estado_juego->timer = al_get_timer_count(timer) * al_get_timer_speed(timer) - estado_juego->prev_timer;
             procesar_entradas(estado_juego, &player, &ball);
-            if(ball.ball.state == PLAY) {
-                printf("ball x: %.2f, ball y: %.2f\n", ball.ball.x, ball.ball.y);
-                actualizar_bala(&(ball.ball));
-                detectar_colisiones(estado_juego, &ball.ball, &player.player, arrangement.block, LVL_1_BLOCKS);
-            }
-            else if(ball.ball.state == RESET) {
-                ball.ball.x = player.player.x + player.player.width / 2 - ball.ball.size / 2;
-                ball.ball.y = PLAYER_START_Y - ball.ball.size;
-                ball.ball.vx = 0;
-                ball.ball.vy = 0;
-                ball.ball.state = WAIT;
-            }
+            controlar_velocidad(&estado_juego->timer, &estado_juego->block_counter, &ball.ball);
+            detectar_condiciones(estado_juego, &ball.ball, &player.player, &arrangement.block, arrangement.num_blocks, ALLEGRO_H, ALLEGRO_W, TOP_PADDING);
             actualizar_movimientos(&player, &ball, &arrangement);
             indicadores(estado_juego);
-            detectar_condiciones(estado_juego, arrangement.block, &ball.ball, LVL_1_BLOCKS);
+            actualizar_bala(&ball.ball);
+            printf("Timer: %f\n", estado_juego->timer);
             al_flip_display();
         }
-        //printf("procesar entradas\n");
     }
-    
-    // Limpiar recursos de forma ordenada
-    al_unregister_event_source(event_queue, al_get_timer_event_source(timer));
-    al_destroy_timer(timer);
-    timer = NULL;
-    
-    al_destroy_bitmap(player.player_bitmap);
-    player.player_bitmap = NULL;
-    
-    al_destroy_bitmap(ball.ball_bitmap);
-    ball.ball_bitmap = NULL;
-    
-    for (int i = 0; i < LVL_1_BLOCKS; i++) {
-        if (arrangement.block_bitmaps[i]) {
-            al_destroy_bitmap(arrangement.block_bitmaps[i]);
-            arrangement.block_bitmaps[i] = NULL;
-        }
-    }
+    gestionar_endgame(estado_juego);
+    cleanup_play_resources(&player, &ball, &arrangement, timer);
 }
 
-//TODAVÍA TIENE UN COMPORTAMIENTO RARO CUANDO CHOCA DE COSTADO
-//TAL VEZ SE ARRGLE ENSANCHANDO UN POCO MÁS EL AREA DE COLISIÓN
+
+
+
+
+//creo que ya solo quedaría arreglar el tema de lo visual

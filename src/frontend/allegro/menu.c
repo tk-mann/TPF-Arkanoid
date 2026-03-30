@@ -1,10 +1,12 @@
 #include "frontend.h"
-
 // Variables externas
 extern ALLEGRO_DISPLAY * display;
 extern ALLEGRO_EVENT_QUEUE *event_queue;
 extern ALLEGRO_EVENT event;
 extern ALLEGRO_FONT * font;
+
+
+
 
 static void get_button_state(bool * button_state, ALLEGRO_BITMAP **imagen, ALLEGRO_BITMAP ** backsquare_1, ALLEGRO_BITMAP ** backsquare_2) {
    if (event.mouse.x >= 160 && event.mouse.x < 460 && event.mouse.y >= 100 && event.mouse.y < 136 && !button_state[0]) {
@@ -17,6 +19,8 @@ static void get_button_state(bool * button_state, ALLEGRO_BITMAP **imagen, ALLEG
       al_flip_display();
       button_state[1] = true;
    }
+
+
 
    if (!(event.mouse.x >= 160 && event.mouse.x < 460 && event.mouse.y >= 100 && event.mouse.y < 136) && !(event.mouse.x >= 160 && event.mouse.x < 460 &&
          event.mouse.y >= 300 && event.mouse.y < 336)) {
@@ -119,6 +123,7 @@ int menu() {
    return opcion;
 }
 
+
 int menu_pausa() {
 	//crear bitmaps
    ALLEGRO_BITMAP * backsquare_1 = al_create_bitmap(100, 50);
@@ -141,13 +146,27 @@ int menu_pausa() {
    bool salir_menu = false;
    int opcion = 0;
    bool redraw = true;
-
+   bool esc = false;
    while (!salir_menu) {
       al_get_next_event(event_queue, & event);
+
+
+      if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
+      switch (event.keyboard.keycode) {
+         case ALLEGRO_KEY_ESCAPE:
+            esc = true;
+            break;
+         }
+      }
 
       if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
          salir_menu = true;
          opcion = SALIR;
+      }
+
+      if(esc){
+         salir_menu = true;
+         opcion = JUGAR;
       }
 
       if (event.type == ALLEGRO_EVENT_MOUSE_AXES) {
@@ -197,6 +216,8 @@ int menu_pausa() {
          } else if (mx >= 110 && mx <= 310 && my >= 350 && my <= 400) {
             al_draw_tinted_bitmap(backsquare_3, al_map_rgba(100, 100, 100, 100), ALLEGRO_W / 2 - 50, 350, 0);
          }
+
+         
 
          // Dibujar texto encima
          al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 100, ALLEGRO_ALIGN_CENTER, "PAUSA");
@@ -287,8 +308,12 @@ void end_phase(GAME_STATE * estado_juego) {
          }
 
          // Textos
-         al_draw_text(font, al_map_rgb(255, 0, 0), ALLEGRO_W / 2, 150, ALLEGRO_ALIGN_CENTER, "HAS PERDIDO");
-
+         if(estado_juego -> state == DERROTA){
+             al_draw_text(font, al_map_rgb(255, 0, 0), ALLEGRO_W / 2, 150, ALLEGRO_ALIGN_CENTER, "HAS PERDIDO");
+         } else if (estado_juego -> state == FIN){
+             al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 150, ALLEGRO_ALIGN_CENTER, "¡FELICIDADES! HAS GANADO");
+         }
+         
          char texto_puntaje[50];
          sprintf(texto_puntaje, "Puntaje: %d", estado_juego -> points);
          al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 220, ALLEGRO_ALIGN_CENTER, texto_puntaje);

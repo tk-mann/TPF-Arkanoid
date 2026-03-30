@@ -1,9 +1,10 @@
 #include "frontend.h"
-
+#include <stdio.h>
 ALLEGRO_DISPLAY * display;
 ALLEGRO_EVENT_QUEUE *event_queue;
 ALLEGRO_EVENT event;
 ALLEGRO_FONT * font;
+
 
 /**
  * inicializar la librería y el proyecto
@@ -13,12 +14,12 @@ int init(GAME_STATE *estado_juego) {
 	estado_juego->level = 1;
 	estado_juego->vidas = 3;
 	estado_juego->points = 0;
+	estado_juego->dead_blocks = 0;
 
 	//inicializa allegro
    if (!al_init()) {
       return 0;
    }
-
    // 1. Inicializar addons
    if (!al_init_primitives_addon()) {
       return 0;
@@ -36,7 +37,7 @@ int init(GAME_STATE *estado_juego) {
    if (!al_install_mouse()) {
       return 0;
    }
-
+   //printf("dispositivos instalados\n");
    // 3. Crear display PRIMERO
    display = al_create_display(ALLEGRO_W, ALLEGRO_H);
    if (!display) {
@@ -55,22 +56,27 @@ int init(GAME_STATE *estado_juego) {
       al_destroy_display(display);
       return 0;
    }
-
+   //printf("event queue creada\n");
    // 6. Registrar fuentes de eventos
    al_register_event_source(event_queue, al_get_display_event_source(display));
    al_register_event_source(event_queue, al_get_keyboard_event_source());
    al_register_event_source(event_queue, al_get_mouse_event_source());
 
    al_flip_display();
+   //printf("display creado\n");
    return 1;
 }
+
 
 
 /**
  * borra objetos creados y libera memoria reservada
  */
+
+ 
+ 
 void de_init(void) {
-   // 1. Destruir event queue
+   // 1. Destruir event queue (antes de destruir el display)
    if (event_queue) {
       al_destroy_event_queue(event_queue);
       event_queue = NULL;
@@ -97,4 +103,6 @@ void de_init(void) {
    al_shutdown_font_addon();
    al_shutdown_image_addon();
    al_shutdown_primitives_addon();
+   printf("recursos liberados\n");
 }
+

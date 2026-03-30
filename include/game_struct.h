@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-enum ESTADOS{DERROTA, VICTORIA, JUGAR, SALIR, REINICIAR};
+enum ESTADOS{DERROTA, VICTORIA, JUGAR, SALIR, REINICIAR, FIN};
 enum ESTADOS_BALA{PLAY, RESET, WAIT};
 enum BLOCK_TYPE{NORMAL, HEAVY, UNBREAKABLE};
 
@@ -12,6 +12,9 @@ typedef struct{
 	int points;
 	int level;
 	int vidas;
+	int dead_blocks;
+    int block_counter;
+    double timer, prev_timer;
 } GAME_STATE;
 
 typedef struct{
@@ -27,6 +30,8 @@ typedef struct{
     float prev_x, prev_y; // Para almacenar la posición anterior
     int state;
     float vx, vy;
+    float speed_factor;
+    float speed;
 } BALL;
 
 typedef struct{
@@ -35,7 +40,6 @@ typedef struct{
 	int dureza;
 	bool alive;
     int type;
-    int dead_block;
 } BLOCK;
 
 typedef enum {
