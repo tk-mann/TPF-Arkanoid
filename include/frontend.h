@@ -5,7 +5,7 @@
 #define ALLEGRO_H 550
 #define HEIGHT_LIMIT 512
 #define TOP_PADDING ALLEGRO_H - HEIGHT_LIMIT
-#define FPS 60
+#define FPS 20
 
 
 
@@ -19,12 +19,12 @@
 #include <time.h>
 #include <stdio.h>
 
-int menu();
-int menu_pausa();
+int menu(void);
+int menu_pausa(void);
 int init(GAME_STATE *estado_juego);
 
 void play(GAME_STATE *estado_juego);
 void end_phase(GAME_STATE *estado_juego);
-void de_init();
+void de_init(void);
 
 #endif /* FRONTEND_H_ */

@@ -6,8 +6,6 @@ extern ALLEGRO_EVENT event;
 extern ALLEGRO_FONT * font;
 
 
-
-
 static void get_button_state(bool * button_state, ALLEGRO_BITMAP **imagen, ALLEGRO_BITMAP ** backsquare_1, ALLEGRO_BITMAP ** backsquare_2) {
    if (event.mouse.x >= 160 && event.mouse.x < 460 && event.mouse.y >= 100 && event.mouse.y < 136 && !button_state[0]) {
       al_draw_tinted_bitmap(*backsquare_1, al_map_rgba(100, 100, 100, 100), ALLEGRO_W / 2 - 65, 90, 0);
@@ -25,7 +23,7 @@ static void get_button_state(bool * button_state, ALLEGRO_BITMAP **imagen, ALLEG
    if (!(event.mouse.x >= 160 && event.mouse.x < 460 && event.mouse.y >= 100 && event.mouse.y < 136) && !(event.mouse.x >= 160 && event.mouse.x < 460 &&
          event.mouse.y >= 300 && event.mouse.y < 336)) {
       al_clear_to_color(al_map_rgb(0, 0, 0));
-      al_draw_bitmap(*imagen, 0, 0, 0);
+   al_draw_scaled_bitmap(*imagen, 0, 0, al_get_bitmap_width(*imagen), al_get_bitmap_height(*imagen), 0, 0, ALLEGRO_W, ALLEGRO_H, 0);
       al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 100, ALLEGRO_ALIGN_CENTER, "Iniciar Juego");
       al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 300, ALLEGRO_ALIGN_CENTER, "Salir");
       al_flip_display();
@@ -64,7 +62,7 @@ static int iniciar_texto(ALLEGRO_BITMAP **imagen, ALLEGRO_BITMAP ** backsquare_1
 
    //dibujar el texto
    al_clear_to_color(al_map_rgb(0, 0, 0));
-   al_draw_bitmap(*imagen, 0, 0, 0);
+   al_draw_scaled_bitmap(*imagen, 0, 0, al_get_bitmap_width(*imagen), al_get_bitmap_height(*imagen), 0, 0, ALLEGRO_W, ALLEGRO_H, 0);
    al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 100, ALLEGRO_ALIGN_CENTER, "Iniciar Juego");
    al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 300, ALLEGRO_ALIGN_CENTER, "Salir");
 
@@ -72,7 +70,7 @@ static int iniciar_texto(ALLEGRO_BITMAP **imagen, ALLEGRO_BITMAP ** backsquare_1
    return 0;
 }
 
-int menu() {
+int menu(void) {
 	//iniciar eventos y variables
    al_get_next_event(event_queue, & event);
    bool salir = false;
@@ -124,7 +122,7 @@ int menu() {
 }
 
 
-int menu_pausa() {
+int menu_pausa(void) {
 	//crear bitmaps
    ALLEGRO_BITMAP * backsquare_1 = al_create_bitmap(100, 50);
    ALLEGRO_BITMAP * backsquare_2 = al_create_bitmap(100, 50);
@@ -141,7 +139,7 @@ int menu_pausa() {
    al_clear_to_color(al_map_rgb(255, 255, 255));
    al_set_target_bitmap(al_get_backbuffer(display));
 
-   al_draw_bitmap(imagen, 0, 0, 0);
+  al_draw_scaled_bitmap(imagen, 0, 0, al_get_bitmap_width(imagen), al_get_bitmap_height(imagen), 0, 0, ALLEGRO_W, ALLEGRO_H, 0);
 
    bool salir_menu = false;
    int opcion = 0;
@@ -178,7 +176,7 @@ int menu_pausa() {
          int my = event.mouse.y;
 
          // Botón Reanudar
-         if (mx >= 110 && mx <= 310 && my >= 150 && my <= 200) {
+         if (mx >= 110 && mx <= 310 && my >= 100 && my <= 150) {
             salir_menu = true;
             opcion = JUGAR;
          }
@@ -206,11 +204,11 @@ int menu_pausa() {
          // Limpiar pantalla
          al_clear_to_color(al_map_rgb(0, 0, 0));
 
-         al_draw_bitmap(imagen, 0, 0, 0);
+        al_draw_scaled_bitmap(imagen, 0, 0, al_get_bitmap_width(imagen), al_get_bitmap_height(imagen), 0, 0, ALLEGRO_W, ALLEGRO_H, 0);
 
          // Dibujar resaltado si el mouse está sobre un botón
-         if (mx >= 110 && mx <= 310 && my >= 150 && my <= 200) {
-            al_draw_tinted_bitmap(backsquare_1, al_map_rgba(100, 100, 100, 100), ALLEGRO_W / 2 - 50, 150, 0);
+         if (mx >= 110 && mx <= 310 && my >= 100 && my <= 150) {
+            al_draw_tinted_bitmap(backsquare_1, al_map_rgba(100, 100, 100, 100), ALLEGRO_W / 2 - 50, 90, 0);
          } else if (mx >= 110 && mx <= 310 && my >= 250 && my <= 300) {
             al_draw_tinted_bitmap(backsquare_2, al_map_rgba(100, 100, 100, 100), ALLEGRO_W / 2 - 50, 250, 0);
          } else if (mx >= 110 && mx <= 310 && my >= 350 && my <= 400) {
@@ -219,9 +217,7 @@ int menu_pausa() {
 
          
 
-         // Dibujar texto encima
-         al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 100, ALLEGRO_ALIGN_CENTER, "PAUSA");
-         al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 165, ALLEGRO_ALIGN_CENTER, "Reanudar");
+         al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 100, ALLEGRO_ALIGN_CENTER, "Reanudar");
          al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 265, ALLEGRO_ALIGN_CENTER, "Reiniciar");
          al_draw_text(font, al_map_rgb(255, 255, 255), ALLEGRO_W / 2, 365, ALLEGRO_ALIGN_CENTER, "Salir");
 
@@ -250,7 +246,7 @@ void end_phase(GAME_STATE * estado_juego) {
    al_clear_to_color(al_map_rgb(255, 255, 255));
    al_set_target_bitmap(al_get_backbuffer(display));
 
-   al_draw_bitmap(imagen, 0, 0, 0);
+  al_draw_scaled_bitmap(imagen, 0, 0, al_get_bitmap_width(imagen), al_get_bitmap_height(imagen), 0, 0, ALLEGRO_W, ALLEGRO_H, 0);
 
    bool salir_menu = false;
    bool redraw = true;
@@ -298,7 +294,7 @@ void end_phase(GAME_STATE * estado_juego) {
          // Limpiar pantalla
          al_clear_to_color(al_map_rgb(0, 0, 0));
 
-         al_draw_bitmap(imagen, 0, 0, 0);
+        al_draw_scaled_bitmap(imagen, 0, 0, al_get_bitmap_width(imagen), al_get_bitmap_height(imagen), 0, 0, ALLEGRO_W, ALLEGRO_H, 0);
 
          // Dibujar resaltado si el mouse está sobre un botón
          if (mx >= 110 && mx <= 310 && my >= 300 && my <= 350) {

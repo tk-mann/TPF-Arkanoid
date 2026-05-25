@@ -37,7 +37,6 @@ int init(GAME_STATE *estado_juego) {
    if (!al_install_mouse()) {
       return 0;
    }
-   //printf("dispositivos instalados\n");
    // 3. Crear display PRIMERO
    display = al_create_display(ALLEGRO_W, ALLEGRO_H);
    if (!display) {
@@ -56,14 +55,12 @@ int init(GAME_STATE *estado_juego) {
       al_destroy_display(display);
       return 0;
    }
-   //printf("event queue creada\n");
    // 6. Registrar fuentes de eventos
    al_register_event_source(event_queue, al_get_display_event_source(display));
    al_register_event_source(event_queue, al_get_keyboard_event_source());
    al_register_event_source(event_queue, al_get_mouse_event_source());
 
    al_flip_display();
-   //printf("display creado\n");
    return 1;
 }
 
@@ -103,6 +100,5 @@ void de_init(void) {
    al_shutdown_font_addon();
    al_shutdown_image_addon();
    al_shutdown_primitives_addon();
-   printf("recursos liberados\n");
 }
 
